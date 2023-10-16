@@ -16,7 +16,7 @@ import Feather from "react-native-vector-icons/Feather";
 
 const SignUpUserScreen = (props) => {
   const [data, setData] = React.useState({
-    email: "",
+    username: "",
     password: "",
     confirm_password: "",
     fullname: "",
@@ -24,6 +24,63 @@ const SignUpUserScreen = (props) => {
     secureTextEntry: true,
     confirm_secureTextEntry: true,
   });
+
+  const [username, setusername] = useState("");
+  const [password, setpassword] = useState("");
+  const [confirmPassword, setconfirmPassword] = useState("");
+  const [fullname, setfullname] = useState("");
+  const [role, setrole] = useState("user");
+
+  const textInputChange = (val) => {
+    if (val.length != 0) {
+      setData({
+        ...data,
+        username: val,
+        check_textInputChange: true,
+      });
+    } else {
+      setData({
+        ...data,
+        username: val,
+        check_textInputChange: false,
+      });
+    }
+    setusername(val);
+  };
+
+  const textInputChange1 = (val) => {
+    if (val.length != 0) {
+      setData({
+        ...data,
+        fullname: val,
+        check_textInputChange: true,
+      });
+    } else {
+      setData({
+        ...data,
+        fullname: val,
+        check_textInputChange: false,
+      });
+    }
+    setfullname(val);
+  };
+
+  const handlePasswordChange = (val) => {
+    setData({
+      ...data,
+      password: val,
+    });
+    setpassword(val);
+  };
+
+  const handleConfirmPasswordChange = (val) => {
+    setData({
+      ...data,
+      confirm_password: val,
+    });
+    setconfirmPassword(val);
+  };
+
   const updateSecureTextEntry = () => {
     setData({
       ...data,
@@ -36,6 +93,62 @@ const SignUpUserScreen = (props) => {
       confirm_secureTextEntry: !data.confirm_secureTextEntry,
     });
   };
+
+  var api_url = "https://65267705917d673fd76c5355.mockapi.io/api/users";
+
+  const handleSignUp = async () => {
+    if (username.length == 0) {
+      alert("Vui lòng nhập username");
+      return;
+    }
+    if (password.length == 0) {
+      alert("Vui lòng nhập password");
+      return;
+    }
+    if (fullname.length == 0) {
+      alert("Vui lòng nhập họ tên");
+      return;
+    }
+    if (password != confirmPassword) {
+      alert("Mật khẩu không trùng khớp");
+      return;
+    }
+
+    fetch(
+      `https://65267705917d673fd76c5355.mockapi.io/api/users?username=${username}`
+    )
+      .then((res) => res.json())
+      .then(async (data) => {
+        if (data.length > 0) {
+          alert("Username đã tồn tại");
+          return;
+        } else {
+          const response = await fetch(api_url, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username: username,
+              password: confirmPassword,
+              fullname: fullname,
+              role: role,
+              // avatar: avatar,
+            }),
+          });
+          if (response.ok) {
+            alert("Đăng ký thành công");
+            // setavatar(null);
+            setusername("");
+            setpassword("");
+            setconfirmPassword("");
+            setfullname("");
+          }
+        }
+      });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -53,6 +166,8 @@ const SignUpUserScreen = (props) => {
                 placeholder="Your Username"
                 style={styles.textInput}
                 autoCapitalize="none"
+                onChangeText={textInputChange}
+                value={username}
               />
             </View>
             <Text style={[styles.text_footer, { marginTop: 35 }]}>
@@ -64,6 +179,8 @@ const SignUpUserScreen = (props) => {
                 placeholder="Your Password"
                 style={styles.textInput}
                 autoCapitalize="none"
+                onChangeText={(val) => handlePasswordChange(val)}
+                value={password}
                 secureTextEntry={data.secureTextEntry ? true : false}
               />
               <TouchableOpacity onPress={updateSecureTextEntry}>
@@ -83,6 +200,8 @@ const SignUpUserScreen = (props) => {
                 placeholder="Your Password"
                 style={styles.textInput}
                 autoCapitalize="none"
+                onChangeText={(val) => handleConfirmPasswordChange(val)}
+                value={confirmPassword}
                 secureTextEntry={data.confirm_secureTextEntry ? true : false}
               />
               <TouchableOpacity onPress={updateConfirmSecureTextEntry}>
@@ -105,10 +224,12 @@ const SignUpUserScreen = (props) => {
                 placeholder="Your Fullname"
                 style={styles.textInput}
                 autoCapitalize="none"
+                onChangeText={textInputChange1}
+                value={fullname}
               />
             </View>
             <View style={{ marginHorizontal: 50 }}>
-              <TouchableOpacity style={styles.signIn}>
+              <TouchableOpacity style={styles.signIn} onPress={handleSignUp}>
                 <Text
                   style={{ fontSize: 17, color: "white", fontWeight: "bold" }}
                 >

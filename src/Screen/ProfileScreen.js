@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,87 +8,297 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  ScrollView,
+  RefreshControl,
+  Modal,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { Feather } from "@expo/vector-icons";
+import { AntDesign } from "@expo/vector-icons";
+import { FontAwesome5 } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { MaterialIcons } from "@expo/vector-icons";
 
-const ProfileScreen = () => {
-  const [userInfo, setUserInfo] = useState({
-    name: "Đông Nguyễn",
-    avatar: require("../../assets/images/bgr_love.jpg"), // Đường dẫn đến ảnh đại diện
-    andress: "Gia Viễn - Ninh Bình",
-    phonenumber: "0878002632",
-  });
+const ProfileScreen = (props) => {
+  const [posts, setPosts] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [objU, setobjU] = useState({});
 
-  const [posts, setPosts] = useState([
-    {
-      id: "1",
-      text: "Đây là bài viết 1.",
-    },
-    {
-      id: "2",
-      text: "Đây là bài viết 2.",
-    },
-    // Thêm các bài viết khác ở đây
-  ]);
+  const [showOptions, setShowOptions] = useState(false);
 
-  const renderItem = ({ item }) => (
-    <View style={styles.postContainer}>
-      <Text style={styles.postText}>{item.text}</Text>
-    </View>
-  );
+  const [editImage, seteditImage] = useState(null);
+  const [editContent, seteditContent] = useState(null);
+  const [avatar, setavatar] = useState(null);
+  const [username, setusername] = useState("");
 
+  const toggleOptions = () => {
+    setShowOptions(!showOptions);
+  };
+
+  var api_url_articles =
+    "https://65267705917d673fd76c5355.mockapi.io/api/articles";
+
+  var api_url_user = "https://65267705917d673fd76c5355.mockapi.io/api/users";
+
+  const getData = async () => {
+    try {
+      const value = await AsyncStorage.getItem("login");
+      if (value !== null) {
+        setobjU(JSON.parse(value));
+        let obj = JSON.parse(value);
+
+        const response = await fetch(api_url_user + "/" + obj.id);
+        if (response.ok) {
+          const data = await response.json();
+          setavatar(data.avatar);
+          setusername(data.username);
+          console.log(avatar + " - " + username);
+        } else {
+          console.error("Lỗi khi tải dữ liệu từ API");
+        }
+
+        const iduser = objU.id;
+
+        fetch(api_url_articles)
+          .then((response) => response.json())
+          .then(async (data) => {
+            const filteredPosts = data.filter((post) => post.iduser === iduser);
+            setPosts(filteredPosts);
+          })
+          .catch((error) => console.error(error));
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  useEffect(() => {
+    getData();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    const iduser = objU.id;
+    fetch(api_url_articles)
+      .then((response) => response.json())
+      .then(async (data) => {
+        const filteredPosts = data.filter((post) => post.iduser === iduser);
+        setPosts(filteredPosts);
+      })
+      .catch((error) => console.error(error));
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  };
+
+  const renderItem = ({ item }) => {
+    const handleEdit = () => {
+      props.navigation.navigate("EditPost", {
+        iditem: item.id,
+        contentitem: item.content,
+        imageitem: item.image,
+      });
+
+      console.log(item.id); // Bây giờ, điều này sẽ đúng và ghi lại mục tương ứng
+      setShowOptions(false);
+    };
+
+    const handleDelete = () => {
+      let url_api_del =
+        "https://65267705917d673fd76c5355.mockapi.io/api/articles/" + item.id;
+      fetch(url_api_del, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => {
+          if (res.status == 200) {
+            //200 cũng là xóa
+            alert("Đã xóa sản phẩm");
+            onRefresh();
+          }
+        })
+        .catch((exception) => {
+          console.log("Lỗi xảy ra khi xóa sản phẩm: " + exception);
+        });
+      console.log("Xóa bài viết");
+      setShowOptions(false); // Đóng hộp thoại sau khi thực hiện tác vụ
+    };
+    return (
+      <View style={styles.containerItem}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 15,
+          }}
+        >
+          <Image
+            source={{ uri: avatar }}
+            style={{ width: 45, height: 45, borderRadius: 50 }}
+          />
+          <Text
+            style={{
+              fontWeight: "600",
+              fontSize: 18,
+              marginLeft: 10,
+              flex: 1,
+            }}
+          >
+            {username}
+          </Text>
+          <TouchableOpacity onPress={toggleOptions}>
+            <View>
+              <Text
+                style={{ fontSize: 25, fontWeight: "bold", marginBottom: 10 }}
+              >
+                {" "}
+                ...{" "}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+        <Modal
+          transparent={true}
+          visible={showOptions}
+          animationType="slide"
+          onRequestClose={() => setShowOptions(false)}
+        >
+          <View style={styles.optionsContainer}>
+            <TouchableOpacity
+              onPress={handleEdit}
+              style={{ flexDirection: "row" }}
+            >
+              <FontAwesome
+                name="pencil"
+                size={18}
+                color="black"
+                style={styles.optionIcons}
+              />
+              <Text style={styles.optionText}>Chỉnh sửa bài viết</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleDelete}
+              style={{ flexDirection: "row" }}
+            >
+              <AntDesign
+                name="delete"
+                size={18}
+                color="black"
+                style={styles.optionIcons}
+              />
+              <Text style={styles.optionText}>Xóa bài viết</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowOptions(false)}
+              style={{ flexDirection: "row" }}
+            >
+              <MaterialIcons
+                name="cancel"
+                size={18}
+                color="black"
+                style={styles.optionIcons}
+              />
+              <Text style={styles.optionText}>Hủy</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+        <Text style={styles.content}>{item.content}</Text>
+        <Image
+          source={{ uri: item.image }}
+          style={{ width: "100%", height: 230, marginBottom: 10 }}
+        />
+        <View
+          style={{ height: 1, backgroundColor: "#D3D3D3", marginTop: 30 }}
+        ></View>
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity
+            // onPress={() => handleLikePress(item.id)}
+            style={{ flexDirection: "row" }}
+          >
+            {item.isLiked ? (
+              <AntDesign name="like2" size={24} color="#3399ff" />
+            ) : (
+              <AntDesign name="like2" size={24} color="black" />
+            )}
+            <Text style={{ marginLeft: 5, marginTop: 5, fontSize: 15 }}>
+              Like
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            // onPress={() => handleCommentPress(item.id)}
+            style={{ flexDirection: "row" }}
+          >
+            <FontAwesome5
+              name="comment-alt"
+              size={22}
+              color="gray"
+              style={{ marginTop: 3 }}
+            />
+            <Text style={{ marginLeft: 5, marginTop: 5, fontSize: 15 }}>
+              Comment
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{ flexDirection: "row" }}>
+            <FontAwesome name="share-square-o" size={24} color="#4F4F4F" />
+            <Text style={{ marginLeft: 5, marginTop: 2, fontSize: 15 }}>
+              Share
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
   const handleEditProfile = () => {
-    // Xử lý chức năng chỉnh sửa thông tin cá nhân ở đây
+    props.navigation.navigate("EditProfile");
     console.log("Chỉnh sửa thông tin cá nhân");
   };
 
   return (
     <SafeAreaView style={{ flex: 1, marginTop: 20 }}>
-      <ScrollView>
-        <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            <TouchableOpacity onPress={handleEditProfile}>
-              <Image source={userInfo.avatar} style={styles.avatar} />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.name}>{userInfo.name}</Text>
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={handleEditProfile}
-          >
-            <FontAwesome name="pencil" size={18} color="black" />
-            <Text style={styles.editButtonText}>Chỉnh sửa trang cá nhân</Text>
+      <View style={styles.header}>
+        <View style={styles.avatarContainer}>
+          <TouchableOpacity onPress={handleEditProfile}>
+            <Image source={{ uri: avatar }} style={styles.avatar} />
           </TouchableOpacity>
         </View>
+        <Text style={styles.name}>{username}</Text>
+        <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+          <FontAwesome name="pencil" size={18} color="black" />
+          <Text style={styles.editButtonText}>Chỉnh sửa thông tin cá nhân</Text>
+        </TouchableOpacity>
+      </View>
 
-        <View style={{ height: 10, backgroundColor: "#B5B5B5" }}></View>
+      <View style={{ height: 10, backgroundColor: "#B5B5B5" }}></View>
 
-        <Text style={{ fontSize: 20, fontWeight: "bold", padding: 10 }}>
-          Chi tiết
-        </Text>
-
-        <View style={{ flexDirection: "row", padding: 5 }}>
-          <FontAwesome name="home" size={24} color="black" />
-          <Text style={{ fontWeight: "bold", marginTop: 5, marginLeft: 10 }}>
-            Sống tại: {userInfo.andress}
-          </Text>
-        </View>
-        <View style={{ flexDirection: "row", padding: 5 }}>
-          <Feather name="phone" size={24} color="black" />
-          <Text style={{ fontWeight: "bold", marginTop: 5, marginLeft: 10 }}>
-            Liên lạc: {userInfo.phonenumber}
-          </Text>
-        </View>
-
-        <FlatList
-          data={posts}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          style={styles.container}
-        />
-      </ScrollView>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => {
+          return item.id;
+        }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        renderItem={renderItem}
+      />
+      <View
+        style={{
+          padding: 15,
+          borderTopWidth: 1,
+          borderTopColor: "#ccc",
+          alignItems: "center",
+          backgroundColor: "#99D1D3",
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => {
+            props.navigation.navigate("LoginScreen");
+          }}
+        >
+          <Text style={{ color: "blue", fontWeight: "bold" }}>Log Out</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
@@ -102,7 +312,7 @@ const styles = StyleSheet.create({
   },
   header: {
     width: "100%",
-    height: Dimensions.get("window").height / 2.3,
+    height: Dimensions.get("window").height / 3.5,
     alignItems: "center",
     paddingVertical: 10,
     backgroundColor: "#FAEBD7",
@@ -113,14 +323,14 @@ const styles = StyleSheet.create({
     borderRadius: 100,
   },
   avatar: {
-    width: Dimensions.get("window").width / 2.2,
-    height: Dimensions.get("window").height / 4,
+    width: 100,
+    height: 100,
     borderRadius: 100,
   },
   name: {
     fontSize: 24,
     fontWeight: "bold",
-    marginTop: 12,
+    marginTop: 5,
   },
   editButton: {
     backgroundColor: "#DCDCDC",
@@ -145,5 +355,47 @@ const styles = StyleSheet.create({
   },
   postText: {
     fontSize: 16,
+  },
+  containerItem: {
+    backgroundColor: "#fff",
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: "black",
+    shadowOpacity: 0.26,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+  },
+  content: {
+    marginLeft: 5,
+    marginBottom: 10,
+    fontSize: 15,
+  },
+  buttonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  optionsIcon: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginLeft: 5,
+  },
+  optionsContainer: {
+    backgroundColor: "white",
+    position: "absolute",
+
+    bottom: "30%",
+    right: "10%",
+    left: "10%",
+  },
+  optionText: {
+    padding: 15,
+    borderBottomColor: "#ccc",
+    fontWeight: "bold",
+  },
+  optionIcons: {
+    padding: 10,
+    marginTop: 5,
+    marginLeft: 10,
   },
 });

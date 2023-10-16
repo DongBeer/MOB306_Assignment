@@ -8,6 +8,10 @@ import styles from "./src/Styles/styles";
 import SignUpAdmin from "./src/Screen/SignUpAdminScreen";
 import BottomNav from "./src/Navigation/BottomNav";
 import SignUpUserScreen from "./src/Screen/SignUpUserScreen";
+import BottomNavUser from "./src/Navigation/BottomNavUser";
+import AddPostScreen from "./src/Screen/AddPostScreen";
+import EditPostScreen from "./src/Screen/EditPostScreen";
+import EditProflieScreen from "./src/Screen/EditProflieScreen";
 
 const Stack = createStackNavigator();
 
@@ -48,8 +52,36 @@ export default function App() {
           }}
         />
         <Stack.Screen
-          name="HomeScreen"
+          name="HomeScreenAdmin"
           component={BottomNav}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="HomeScreenUser"
+          component={BottomNavUser}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="AddPostScreen"
+          component={AddPostScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="EditPost"
+          component={EditPostScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="EditProfile"
+          component={EditProflieScreen}
           options={{
             headerShown: false,
           }}

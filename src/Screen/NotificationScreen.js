@@ -12,12 +12,12 @@ const NotificationScreen = () => {
   const [notifications, setNotifications] = useState([
     {
       id: "1",
-      sender: "John Doe",
+      sender: "Đông Beer",
       message: "Bạn có một thông báo mới",
     },
     {
       id: "2",
-      sender: "Jane Smith",
+      sender: "Đông Beer",
       message: "Bạn được theo dõi bởi người mới",
     },
     // Thêm các thông báo khác ở đây

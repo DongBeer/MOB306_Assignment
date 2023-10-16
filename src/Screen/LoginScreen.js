@@ -7,26 +7,97 @@ import {
   TouchableOpacity,
   SafeAreaViewBase,
   KeyboardAvoidingView,
+  Alert,
 } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 import { ScrollView } from "react-native-gesture-handler";
 import styles from "../Styles/styles";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import Feather from "react-native-vector-icons/Feather";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginScreen = (props) => {
   const [data, setData] = React.useState({
-    email: "",
+    username: "",
     password: "",
     check_textInputChange: false,
     secureTextEntry: true,
   });
+
+  const [username, setusername] = useState("");
+  const [password, setpassword] = useState("");
+
+  const textInputChange = (val) => {
+    if (val.length != 0) {
+      setData({
+        ...data,
+        username: val,
+        check_textInputChange: true,
+      });
+    } else {
+      setData({
+        ...data,
+        username: val,
+        check_textInputChange: false,
+      });
+    }
+    setusername(val);
+  };
+
+  const handlePasswordChange = (val) => {
+    setData({
+      ...data,
+      password: val,
+    });
+    setpassword(val);
+  };
 
   const updateSecureTextEntry = () => {
     setData({
       ...data,
       secureTextEntry: !data.secureTextEntry,
     });
+  };
+
+  const doLogin = () => {
+    if (username.length == 0) {
+      alert("Vui lòng nhập username");
+      return;
+    }
+    if (password.length == 0) {
+      alert("Vui lòng nhập mật khẩu");
+      return;
+    }
+
+    let url_check_login = `https://65267705917d673fd76c5355.mockapi.io/api/users?username=${username}`;
+    fetch(url_check_login)
+      .then((res) => {
+        return res.json();
+      })
+      .then(async (res_login) => {
+        if (res_login.length != 1) {
+          alert("Tài khoản không tồn tại");
+          return;
+        } else {
+          let objU = res_login[0];
+          if (objU.password == password) {
+            try {
+              await AsyncStorage.setItem("login", JSON.stringify(objU));
+              if (objU.role == "admin") {
+                props.navigation.navigate("HomeScreenAdmin");
+              } else {
+                props.navigation.navigate("HomeScreenUser");
+              }
+              setusername("");
+              setpassword("");
+            } catch (e) {
+              console.log(e);
+            }
+          } else {
+            alert("Sai mật khẩu");
+          }
+        }
+      });
   };
 
   return (
@@ -44,6 +115,8 @@ const LoginScreen = (props) => {
                 placeholder="Your Username"
                 style={styles.textInput}
                 autoCapitalize="none"
+                onChangeText={textInputChange}
+                value={username}
               />
             </View>
             <Text style={[styles.text_footer, { marginTop: 35 }]}>
@@ -55,6 +128,8 @@ const LoginScreen = (props) => {
                 placeholder="Your Password"
                 style={styles.textInput}
                 autoCapitalize="none"
+                onChangeText={(val) => handlePasswordChange(val)}
+                value={password}
                 secureTextEntry={data.secureTextEntry ? true : false}
               />
               <TouchableOpacity onPress={updateSecureTextEntry}>
@@ -66,12 +141,7 @@ const LoginScreen = (props) => {
               </TouchableOpacity>
             </View>
             <View style={{ marginHorizontal: 50 }}>
-              <TouchableOpacity
-                style={styles.signIn}
-                onPress={() => {
-                  props.navigation.navigate("HomeScreen");
-                }}
-              >
+              <TouchableOpacity style={styles.signIn} onPress={doLogin}>
                 <Text
                   style={{ fontSize: 17, color: "white", fontWeight: "bold" }}
                 >

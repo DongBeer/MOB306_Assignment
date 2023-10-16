@@ -1,67 +1,130 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   FlatList,
-  Image,
   TouchableOpacity,
   StyleSheet,
+  TextInput,
   SafeAreaView,
+  Dimensions,
+  RefreshControl,
+  Image,
 } from "react-native";
+import { AntDesign } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import { FontAwesome5 } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const FollowerScreen = () => {
-  const [following, setFollowing] = useState([
-    {
-      id: "1",
-      username: "user1",
-      avatar: require("../../assets/images/bgr_love.jpg"), // Đường dẫn đến ảnh đại diện
-      isFollowing: true, // Mặc định bạn đang theo dõi
-    },
-    {
-      id: "2",
-      username: "user2",
-      avatar: require("../../assets/images/bgr_love.jpg"), // Đường dẫn đến ảnh đại diện
-      isFollowing: true, // Mặc định bạn đang theo dõi
-    },
-    {
-      id: "3",
-      username: "user3",
-      avatar: require("../../assets/images/bgr_love.jpg"), // Đường dẫn đến ảnh đại diện
-      isFollowing: true, // Mặc định bạn đang theo dõi
-    },
-    // Thêm người dùng khác ở đây
-  ]);
+  const [user, setUser] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [objU, setobjU] = useState({});
 
-  const handleUnfollow = (userId) => {
-    // Xử lý khi người dùng nhấn vào nút "Bỏ theo dõi"
-    const updatedFollowing = following.map((user) => {
-      if (user.id === userId) {
-        return { ...user, isFollowing: false }; // Đánh dấu là không theo dõi
-      }
-      return user;
-    });
+  const [followedUsers, setFollowedUsers] = useState([]);
 
-    setFollowing(updatedFollowing);
+  const handleFollowUser = (userId, isFollowed) => {
+    if (isFollowed) {
+      // Nếu đã theo dõi, thực hiện hủy theo dõi
+      const updatedFollowedUsers = followedUsers.filter((id) => id !== userId);
+      setFollowedUsers(updatedFollowedUsers);
+    } else {
+      // Nếu chưa theo dõi, thực hiện theo dõi
+      setFollowedUsers([...followedUsers, userId]);
+    }
   };
-  const renderItem = ({ item }) => (
-    <View style={styles.userContainer}>
-      <Image source={item.avatar} style={styles.avatar} />
-      <Text style={styles.username}>{item.username}</Text>
-      {item.isFollowing ? (
-        <TouchableOpacity
-          onPress={() => handleUnfollow(item.id)}
-          style={styles.unfollowButton}
+
+  var api_url = "https://65267705917d673fd76c5355.mockapi.io/api/users";
+
+  const getData = async () => {
+    try {
+      const value = await AsyncStorage.getItem("login");
+      if (value !== null) {
+        setobjU(JSON.parse(value));
+        let obj = JSON.parse(value);
+
+        console.log(obj);
+
+        fetch(api_url)
+          .then((response) => response.json())
+          .then(async (data) => {
+            setUser(data);
+          })
+          .catch((error) => console.error(error));
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  useEffect(() => {
+    getData();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetch(api_url)
+      .then((response) => response.json())
+      .then((data) => setUser(data))
+      .catch((error) => console.error(error));
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  };
+
+  const renderItem = ({ item }) => {
+    const isFollowed = followedUsers.includes(item.id);
+    return (
+      <View style={styles.containerItem}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 15,
+          }}
         >
-          <Text style={styles.unfollowButtonText}>Bỏ theo dõi</Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
-  );
+          <Image
+            source={{ uri: item.avatar }}
+            style={{ width: 45, height: 45, borderRadius: 50 }}
+          />
+          <Text
+            style={{
+              fontWeight: "600",
+              fontSize: 18,
+              marginLeft: 10,
+              flex: 1,
+            }}
+          >
+            {item.username}
+          </Text>
+          <TouchableOpacity
+            onPress={() => handleFollowUser(item.id, isFollowed)}
+          >
+            <View
+              style={[
+                styles.containerBtnFl,
+                { backgroundColor: isFollowed ? "orange" : "#FE2C55" },
+              ]}
+            >
+              <Text style={styles.follow}>
+                {isFollowed ? "Unfollow" : "Follow +"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, marginTop: 20 }}>
       <FlatList
-        data={following}
+        data={user}
         keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         renderItem={renderItem}
         style={styles.container}
       />
@@ -73,32 +136,29 @@ export default FollowerScreen;
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
     flex: 1,
   },
-  userContainer: {
-    flexDirection: "row",
+  containerItem: {
+    backgroundColor: "#fff",
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: "black",
+    shadowOpacity: 0.26,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+  },
+  containerBtnFl: {
+    borderWidth: 1,
+    borderColor: "white",
     alignItems: "center",
-    marginBottom: 1,
-    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
     padding: 10,
+    borderRadius: 10,
+    marginLeft: 10,
+    backgroundColor: "#FE2C55",
   },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 16,
-  },
-  username: {
-    fontSize: 18,
-    flex: 1,
-  },
-  unfollowButton: {
-    backgroundColor: "#e74c3c",
-    padding: 8,
-    borderRadius: 5,
-  },
-  unfollowButtonText: {
-    color: "#fff",
+  follow: {
+    color: "white",
+    fontWeight: "bold",
   },
 });

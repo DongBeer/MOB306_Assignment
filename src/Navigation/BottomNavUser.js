@@ -1,17 +1,14 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import HomeScreen from "../Screen/HomeScreen";
+import HomeScreenUser from "../Screen/HomeScreenUser";
 import ProfileScreen from "../Screen/ProfileScreen";
 import NotificationScreen from "../Screen/NotificationScreen";
 import FollowerScreen from "../Screen/FollowerScreen";
-import AddPostScreen from "../Screen/AddPostScreen";
-import { createStackNavigator } from "@react-navigation/stack";
 
 const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
 
-const BottomNav = () => {
+const BottomNavUser = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -36,7 +33,7 @@ const BottomNav = () => {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Home" component={HomeScreenUser} />
       <Tab.Screen name="Follow" component={FollowerScreen} />
       <Tab.Screen name="Notifi" component={NotificationScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
@@ -44,4 +41,4 @@ const BottomNav = () => {
   );
 };
 
-export default BottomNav;
+export default BottomNavUser;
